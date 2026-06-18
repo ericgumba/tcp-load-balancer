@@ -18,9 +18,9 @@ int connect_backend() {
     inet_pton(AF_INET, BACKEND_HOST, &addr.sin_addr);
 
     if(connect(backend_fd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
-	perror("Connect backend");
-	close(backend_fd);
-	return -1;
+        perror("Connect backend");
+        close(backend_fd);
+        return -1;
 
     }
     return backend_fd;

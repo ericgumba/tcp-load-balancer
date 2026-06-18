@@ -10,8 +10,9 @@
 
 struct load_balancer {
     struct backend backends[3];
-    int listen_fd;
-    int num_backends;
+    int listen_fd; 
+    int num_backends; 
+    int current_backend; // for round-robin
     struct sockaddr_in addr;
     
 };
