@@ -15,7 +15,7 @@ int connect_backend(struct load_balancer * lb) {
     // TODO: implement backend selection and connection
     int backend_index = lb->current_backend;
 
-    lb->current_backend = (lb->current_backend + 1) % lb->num_backends;
+    lb->current_backend = (lb->current_backend + 1) % lb->pool.num_backends;
     struct backend * backend = &lb->backends[backend_index];
     int backend_fd = socket(AF_INET, SOCK_STREAM, 0);
     struct sockaddr_in addr = {0};
@@ -86,10 +86,7 @@ void handle_client(struct load_balancer * lb, int client_fd) {
 ////////////////////////////////////
 
 void init_loadbalancer(struct load_balancer * lb) {
-    lb->backends[0] = (struct backend){"localhost", 9001, 1, 0};
-    lb->backends[1] = (struct backend){"localhost", 9002, 1, 0};
-    lb->backends[2] = (struct backend){"localhost", 9003, 1, 0};
-    lb->num_backends = 3;
+    init_backend_pool(&lb->pool);
     lb->current_backend = 0;
     init_socket(lb);
 }

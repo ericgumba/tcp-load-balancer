@@ -1,4 +1,5 @@
 #include "backend.h"
+#include "backend_pool.h"
 #define LISTEN_PORT 8080
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,9 +10,8 @@
 
 
 struct load_balancer {
-    struct backend backends[3];
+    struct backend_pool pool;
     int listen_fd; 
-    int num_backends; 
     int current_backend; // for round-robin
     struct sockaddr_in addr;
     
