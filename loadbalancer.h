@@ -1,5 +1,7 @@
 #include "backend.h"
 #include "backend_pool.h"
+#include "connection.h"
+
 #define LISTEN_PORT 8080
 #include <stdio.h>
 #include <stdlib.h>
@@ -8,6 +10,8 @@
 #include <arpa/inet.h>
 #include <sys/wait.h>
 
+#ifndef LOADBALANCER_H
+#define LOADBALANCER_H
 
 struct load_balancer {
     struct backend_pool pool;
@@ -20,3 +24,7 @@ struct load_balancer {
 void init_loadbalancer(struct load_balancer * lb);
 
 void run_loadbalancer(struct load_balancer * lb);
+
+struct backend * select_backend(struct load_balancer * lb);
+
+#endif
