@@ -1,11 +1,12 @@
 #include "loadbalancer.h"
-#include "backend.h"
-#include "connection.h"
+#include "backend.h" 
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <unistd.h>
 #include <stdio.h>
+// include poll 
+#include <poll.h>
 
 void init_socket(struct load_balancer * lb) {
     lb->listen_fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -37,19 +38,10 @@ void run_loadbalancer(struct load_balancer * lb) {
         int client = accept(lb->listen_fd, NULL, NULL);
         printf("Accepted client connection: %d\n", client);
         struct backend * backend = select_backend(lb);
- 
-        pid_t pid = fork();
-        if (pid == 0) { // newly created child process 
-            close(lb->listen_fd);
-            int backend_fd = connect_backend(backend);
-            if (backend_fd < 0) {
-                close(client);
-                exit(1);
-            }
-            struct connection conn = {client, backend_fd};
-            handle_connection(&conn);
-            exit(0);
-        }
+        int backend_fd = connect_backend(backend);
+        if (backend_fd < 0) {
+            close(client);
+  
         close(client);
     }
 }

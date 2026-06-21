@@ -1,6 +1,5 @@
 #include "backend.h"
-#include "backend_pool.h"
-#include "connection.h"
+#include "backend_pool.h" 
 
 #define LISTEN_PORT 8080
 #include <stdio.h>
@@ -9,12 +8,14 @@
 #include <string.h>
 #include <arpa/inet.h>
 #include <sys/wait.h>
-
+#include <poll.h>
+#include "session_table.h"
 #ifndef LOADBALANCER_H
 #define LOADBALANCER_H
-
+#define MAX_CONNECTIONS 1024
 struct load_balancer {
     struct backend_pool pool;
+    struct session_table conn_pool;
     int listen_fd; 
     int current_backend; // for round-robin
     struct sockaddr_in addr;
