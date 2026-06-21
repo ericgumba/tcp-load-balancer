@@ -4,7 +4,8 @@
 #include <string.h>
 #include <unistd.h>
 #include <arpa/inet.h>
-
+#include <poll.h>
+#define MAX_CONNECTIONS 1024
 int main(int argc, char *argv[]) {
     int port = argc > 1 ? atoi(argv[1]) : 9001;
     int fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -16,18 +17,42 @@ int main(int argc, char *argv[]) {
     addr.sin_addr.s_addr = INADDR_ANY;
     bind(fd, (struct sockaddr *)&addr, sizeof(addr));
     listen(fd, 128);
+    struct pollfd fds[MAX_CONNECTIONS];
+    fds[0].fd = fd;
+    fds[0].events = POLLIN;
+    int current_connections = 1;
+
 
     printf("echo server: listening on %d\n", port);
 
     while (1) {
-        int client = accept(fd, NULL, NULL);
-
-        char buf[4096];
-        ssize_t n;
-
-        while ((n = read(client, buf, sizeof(buf))) > 0) {
-            printf("echo server received: %.*s\n", (int)n, buf);
-	    write(client, buf, n);
+        int n = poll(fds, current_connections, -1);
+        if (n <= 0) {
+            perror("poll");
+            continue;
+        }
+        if (fds[0].revents & POLLIN) {
+            int client = accept(fd, NULL, NULL);
+            if (current_connections < MAX_CONNECTIONS) {
+                fds[current_connections].fd = client;
+                fds[current_connections].events = POLLIN;
+                current_connections++;
+            } else {
+                close(client);
+            }
+        }
+        for (int i = 1; i < current_connections; i++) {
+            if (fds[i].revents & POLLIN) {
+                char buf[4096];
+                ssize_t n = read(fds[i].fd, buf, sizeof(buf));
+                if (n <= 0) {
+                    close(fds[i].fd);
+                    fds[i] = fds[current_connections - 1];
+                    current_connections--;
+                } else {
+                    write(fds[i].fd, buf, n);
+                }
+            }
         }
     }
 

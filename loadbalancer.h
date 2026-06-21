@@ -13,10 +13,15 @@
 #ifndef LOADBALANCER_H
 #define LOADBALANCER_H
 #define MAX_CONNECTIONS 1024
+
+struct listener {
+    int fd;
+    struct pollfd pollfd;
+};
 struct load_balancer {
     struct backend_pool pool;
-    struct session_table conn_pool;
-    int listen_fd; 
+    struct session_table session_table;
+    struct listener listener;
     int current_backend; // for round-robin
     struct sockaddr_in addr;
     
