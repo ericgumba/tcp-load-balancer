@@ -35,7 +35,7 @@ void register_w_lb(int port) {
 }
 int main(int argc, char *argv[]) {
     int port = argc > 1 ? atoi(argv[1]) : 9001;
-    // register_w_lb(port);
+    register_w_lb(port);
     int fd = socket(AF_INET, SOCK_STREAM, 0);
     int opt = 1;
     setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));

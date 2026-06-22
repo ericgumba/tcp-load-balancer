@@ -28,11 +28,17 @@ void session_on_backend_ready(struct proxy_session * conn) {
 
 struct proxy_session create_connection(int client_fd, int backend_fd) {
     struct proxy_session conn;
+
     conn.client_fd = client_fd;
     conn.backend_fd = backend_fd;
+
     conn.client_pollfd.fd = client_fd;
     conn.client_pollfd.events = POLLIN;
+    conn.client_pollfd.revents = 0;
+
     conn.backend_pollfd.fd = backend_fd;
     conn.backend_pollfd.events = POLLIN;
+    conn.backend_pollfd.revents = 0;
+
     return conn;
-} 
+}

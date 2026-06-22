@@ -31,7 +31,7 @@ struct backend * select_backend(struct load_balancer * lb) {
 }
 
 void init_loadbalancer(struct load_balancer * lb) { 
-    init_backend_pool(&lb->pool);
+    // init_backend_pool(&lb->pool);
     lb->current_backend = 0;
     init_socket(&lb->client_listener, LISTEN_PORT);
     init_socket(&lb->registration_listener, REGISTER_PORT);
@@ -84,26 +84,27 @@ void run_loadbalancer(struct load_balancer * lb) {
             }
         }
 
-        // if (fds[POLLFD_REGISTRATION_IDX].revents & POLLIN) {
-        //     // ???
-        //     printf("ATTEMPTING TO REG\n");
-        //     int backend_register_fd = accept(lb->registration_listener.fd, NULL, NULL);
-        //     char buf[4096];
-        //     ssize_t n = read(backend_register_fd, buf, sizeof(buf));
-        //     if (n <= 0) {  
-        //         printf("???\n");
-        //         close(backend_register_fd); // EOF or error
-        //         continue;
-        //     }
-        //     char host[64];
-        //     int port;
-        //     if (sscanf(buf, "REGISTER %63s %d", host, &port) == 2) {
-        //         // register_backend(&lb->pool, host, port);
-        //     } else {
-        //         printf("Bad registration message %s", buf);
-        //     }
-        //     close(backend_register_fd); // EOF or error
-        // }
+        if (fds[POLLFD_REGISTRATION_IDX].revents & POLLIN) {
+            // ???
+            printf("ATTEMPTING TO REG\n");
+            int backend_register_fd = accept(lb->registration_listener.fd, NULL, NULL);
+            char buf[4096];
+            ssize_t n = read(backend_register_fd, buf, sizeof(buf));
+            if (n <= 0) {  
+                printf("???\n");
+                close(backend_register_fd); // EOF or error
+                continue;
+            }
+            buf[n] = '\0';
+            char host[64];
+            int port;
+            if (sscanf(buf, "REGISTER %63s %d", host, &port) == 2) {
+                register_backend(&lb->pool, host, port);
+            } else {
+                printf("Bad registration message %s", buf);
+            }
+            close(backend_register_fd); // EOF or error
+        }
         process_ready_sessions(&lb->session_table);
     }
         
