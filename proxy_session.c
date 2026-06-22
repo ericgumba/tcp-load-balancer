@@ -7,6 +7,7 @@ void pipe_data(int from_fd, int to_fd) {
     char buf[4096];
     ssize_t n = read(from_fd, buf, sizeof(buf));
     if (n <= 0) {  
+        printf("???");
         return; // EOF or error
     }
     write(to_fd, buf, n); 
@@ -18,11 +19,11 @@ void close_connection(struct proxy_session * conn) {
 }
 void session_on_client_ready(struct proxy_session * conn) {
     printf("Session on client ready \n");
-    pipe_data(conn->client_fd, conn->backend_fd); 
+    pipe_data(conn->client_fd, conn->backend_fd);
 }
 void session_on_backend_ready(struct proxy_session * conn) {
     printf("Session on backend ready \n");
-    pipe_data(conn->backend_fd, conn->client_fd); 
+    pipe_data(conn->backend_fd, conn->client_fd);
 }
 
 struct proxy_session create_connection(int client_fd, int backend_fd) {

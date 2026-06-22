@@ -14,7 +14,9 @@
 int main() {
     printf("Starting load balancer on port %d\n", LISTEN_PORT);
     struct load_balancer lb = {0};
+    printf("INIT\n");
     init_loadbalancer(&lb);
+    printf("RUN\n");
     run_loadbalancer(&lb);
 
     return 0;

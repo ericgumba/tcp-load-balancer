@@ -8,5 +8,5 @@ struct backend_pool {
 };
 
 void init_backend_pool(struct backend_pool * pool);
-
+void register_backend(struct backend_pool * pool, char * host, int port);
 #endif
