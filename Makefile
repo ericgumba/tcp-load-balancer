@@ -1,6 +1,6 @@
 CC=gcc
 CFLAGS=-Wall -Wextra -O2
-LBS=loadbalancer.c backend_pool.c proxy_session.c backend.c
+LBS=loadbalancer.c backend_pool.c proxy_session.c backend.c session_table.c
 LB_SRCS=main.c $(LBS)
 
 

@@ -50,7 +50,12 @@ int main(int argc, char *argv[]) {
                     fds[i] = fds[current_connections - 1];
                     current_connections--;
                 } else {
-                    write(fds[i].fd, buf, n);
+                    printf("client %d: %.*s", fds[i].fd, (int)n, buf);
+                    const char * prefix = "Echo: ";
+                    char response[4096];
+                    // combine prefix and buf into response
+                    snprintf(response, sizeof(response), "%s%.*s", prefix, (int)n, buf);
+                    write(fds[i].fd, response, strlen(response));
                 }
             }
         }

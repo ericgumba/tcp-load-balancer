@@ -2,7 +2,7 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include <stdlib.h>
-
+#include <stdio.h>
 void pipe_data(int from_fd, int to_fd) {
     char buf[4096];
     ssize_t n = read(from_fd, buf, sizeof(buf));
@@ -17,9 +17,11 @@ void close_connection(struct proxy_session * conn) {
     close(conn->backend_fd);
 }
 void session_on_client_ready(struct proxy_session * conn) {
+    printf("Session on client ready \n");
     pipe_data(conn->client_fd, conn->backend_fd); 
 }
 void session_on_backend_ready(struct proxy_session * conn) {
+    printf("Session on backend ready \n");
     pipe_data(conn->backend_fd, conn->client_fd); 
 }
 

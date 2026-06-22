@@ -22,7 +22,6 @@ void init_socket(struct load_balancer * lb) {
 struct backend * select_backend(struct load_balancer * lb) {
     struct backend * backend = &lb->pool.backends[lb->current_backend];
     lb->current_backend = (lb->current_backend + 1) % lb->pool.num_backends;
-    printf("Selected backend bro: %s:%d\n", backend->host, backend->port);
     return backend;
 }
 
@@ -44,23 +43,31 @@ void run_loadbalancer(struct load_balancer * lb) {
             fds[1 + i * 2 + 1].events = lb->session_table.connections[i].backend_pollfd.events;
         }
         int n = poll(fds, 1 + lb->session_table.num_connections * 2, -1);
+
+        for (int i = 0; i < lb->session_table.num_connections; i++) {
+            lb->session_table.connections[i].client_pollfd.revents =
+                fds[1 + i * 2].revents;
+
+            lb->session_table.connections[i].backend_pollfd.revents =
+                fds[1 + i * 2 + 1].revents;
+        }
+
         if (n <= 0) {
             perror("poll");
             continue;
-        }
-            if (fds[0].revents & POLLIN) {
-                int client_fd = accept(lb->listener.fd, NULL, NULL);
-                struct backend * backend = select_backend(lb);
-                int backend_fd = connect_backend(backend);
-                if (backend_fd >= 0) {
-                    struct proxy_session conn = create_connection(client_fd, backend_fd);
-                    add_session(&lb->session_table, conn);
-                } else {
-                    close(client_fd);
-                }
+        } 
+        if (fds[0].revents & POLLIN) {
+            int client_fd = accept(lb->listener.fd, NULL, NULL);
+            struct backend * backend = select_backend(lb);
+            int backend_fd = connect_backend(backend);
+            if (backend_fd >= 0) {
+                struct proxy_session conn = create_connection(client_fd, backend_fd);
+                add_session(&lb->session_table, conn);
+            } else {
+                close(client_fd);
             }
-            process_ready_sessions(&lb->session_table);
         }
-        
+        process_ready_sessions(&lb->session_table);
     }
+        
 }
