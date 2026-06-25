@@ -24,6 +24,10 @@ void process_ready_sessions(struct session_table * sess_table) {
         if ( conn->client_pollfd.revents & (POLLERR | POLLHUP)) {
             remove_session(sess_table, i);
         }
+
+        if ( conn->backend_pollfd.revents & (POLLERR | POLLHUP)) {
+            remove_session(sess_table, i);
+        }
         
         if(conn->backend_pollfd.revents & POLLIN) {
             session_on_backend_ready(conn);
