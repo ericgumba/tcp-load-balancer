@@ -37,22 +37,29 @@ void init_loadbalancer(struct load_balancer * lb) {
     init_socket(&lb->registration_listener, REGISTER_PORT);
 }
 
+int init_pollfd(struct load_balancer * lb, struct pollfd * fds) {
+    int nfds = POLLFD_SESSION_STARTING_IDX + lb->session_table.num_connections * 2;
+    fds[POLLFD_LISTEN_IDX].fd = lb->client_listener.fd;
+    fds[POLLFD_LISTEN_IDX].events = POLLIN;
+    fds[POLLFD_REGISTRATION_IDX].fd = lb->registration_listener.fd;
+    fds[POLLFD_REGISTRATION_IDX].events = POLLIN;
+    for (int i = 0; i < lb->session_table.num_connections; i++) {
+        fds[POLLFD_SESSION_STARTING_IDX + i * 2].fd = lb->session_table.connections[i].client_pollfd.fd;
+        fds[POLLFD_SESSION_STARTING_IDX + i * 2].events = lb->session_table.connections[i].client_pollfd.events;
+        fds[POLLFD_SESSION_STARTING_IDX + i * 2 + 1].fd = lb->session_table.connections[i].backend_pollfd.fd;
+        fds[POLLFD_SESSION_STARTING_IDX + i * 2 + 1].events = lb->session_table.connections[i].backend_pollfd.events;
+    }
+    return nfds;
+}
+
 void run_loadbalancer(struct load_balancer * lb) {
     while (1) {
         printf("NEW LOOP \n");
         struct pollfd fds[POLLFD_SESSION_STARTING_IDX + lb->session_table.num_connections * 2];
-        fds[POLLFD_LISTEN_IDX].fd = lb->client_listener.fd;
-        fds[POLLFD_LISTEN_IDX].events = POLLIN;
-        fds[POLLFD_REGISTRATION_IDX].fd = lb->registration_listener.fd;
-        fds[POLLFD_REGISTRATION_IDX].events = POLLIN;
-        for (int i = 0; i < lb->session_table.num_connections; i++) {
-            fds[POLLFD_SESSION_STARTING_IDX + i * 2].fd = lb->session_table.connections[i].client_pollfd.fd;
-            fds[POLLFD_SESSION_STARTING_IDX + i * 2].events = lb->session_table.connections[i].client_pollfd.events;
-            fds[POLLFD_SESSION_STARTING_IDX + i * 2 + 1].fd = lb->session_table.connections[i].backend_pollfd.fd;
-            fds[POLLFD_SESSION_STARTING_IDX + i * 2 + 1].events = lb->session_table.connections[i].backend_pollfd.events;
-        }
-        int n = poll(fds, POLLFD_SESSION_STARTING_IDX + lb->session_table.num_connections * 2, -1);
+        int nfds = init_pollfd(lb, fds);
+        int n = poll(fds, nfds, -1);
 
+        // copy back revents back into session table
         for (int i = 0; i < lb->session_table.num_connections; i++) {
             lb->session_table.connections[i].client_pollfd.revents =
                 fds[POLLFD_SESSION_STARTING_IDX + i * 2].revents;
@@ -77,7 +84,7 @@ void run_loadbalancer(struct load_balancer * lb) {
             struct backend * backend = select_backend(lb);
             int backend_fd = connect_backend(backend);
             if (backend_fd >= 0) {
-                struct proxy_session conn = create_connection(client_fd, backend_fd);
+                struct proxy_session conn = create_session(client_fd, backend_fd);
                 add_session(&lb->session_table, conn);
             } else {
                 close(client_fd);

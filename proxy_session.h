@@ -11,6 +11,6 @@ struct proxy_session {
 
 void session_on_client_ready(struct proxy_session * conn);
 void session_on_backend_ready(struct proxy_session * conn);
- 
-struct proxy_session create_connection(int client_fd, int backend_fd);
+
+struct proxy_session create_session(int client_fd, int backend_fd);
 #endif

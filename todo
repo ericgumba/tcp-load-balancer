@@ -1,0 +1,19 @@
+Backend failure on connect
+If connect_backend() fails, mark that backend unhealthy and try the next one.
+Retry another backend
+Don’t close the client immediately if one backend fails.
+Periodic health checks
+Every few seconds, attempt to connect to unhealthy backends and mark them healthy if they respond.
+Metrics
+Print or expose:
+active_sessions
+registered_backends
+healthy_backends
+total_connections
+backend_failures
+bytes_proxied
+Config file
+Support both:
+./lb backends.conf
+
+and dynamic registration.

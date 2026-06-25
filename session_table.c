@@ -9,11 +9,20 @@ void add_session(struct session_table * sess_table, struct proxy_session conn) {
     }
 }
 
+void remove_session(struct session_table * sess_table, int i) {
+    sess_table->connections[i] = sess_table->connections[sess_table->num_connections];
+    sess_table->num_connections--;
+}
+
 void process_ready_sessions(struct session_table * sess_table) {
     for(int i = 0; i < sess_table->num_connections; i++) {
         struct proxy_session * conn = &sess_table->connections[i];
         if ( conn->client_pollfd.revents & POLLIN) {
             session_on_client_ready(conn);
+        }
+
+        if ( conn->client_pollfd.revents & (POLLERR | POLLHUP)) {
+            remove_session(sess_table, i);
         }
         
         if(conn->backend_pollfd.revents & POLLIN) {
