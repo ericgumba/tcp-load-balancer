@@ -1,10 +1,12 @@
 #ifndef BACKEND_H
 #define BACKEND_H
 
+#include <stdbool.h>
+
 struct backend {
     char host[64];
     int port;
-    int healthy;
+    bool healthy;
     int connections;
 };
 

@@ -3,6 +3,7 @@
 
 #define LISTEN_PORT 8080
 #define REGISTER_PORT 7070
+#define METRICS_PORT 7071
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -26,6 +27,7 @@ struct load_balancer {
     struct session_table session_table;
     struct listener client_listener;
     struct listener registration_listener;
+    struct listener metrics_listener;
     int current_backend; // for round-robin
     
 };

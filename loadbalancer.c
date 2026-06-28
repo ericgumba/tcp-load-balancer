@@ -11,7 +11,13 @@
 
 #define POLLFD_LISTEN_IDX 0
 #define POLLFD_REGISTRATION_IDX 1
-#define POLLFD_SESSION_STARTING_IDX 2
+#define POLLFD_METRICS_IDX 2
+#define POLLFD_SESSION_STARTING_IDX 3
+struct http_req {
+    char method[16];
+    char path[256];
+    char version[16];
+};
 
 void init_socket(struct listener * l, int port) {
     l->fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -37,10 +43,80 @@ struct backend * select_backend(struct load_balancer * lb) {
     return NULL;
 }
 
+enum parse_req_result {
+    READ_FAIL,
+    PARSE_FAIL,
+    SUCCESS
+};
+
+enum parse_req_result parse_req(int fd, struct http_req * req) {
+
+    char buf[2057];
+    ssize_t n = read(fd, buf, sizeof(buf)-1);
+    if (n < 0) {
+        return READ_FAIL;
+    }
+
+    buf[n] = '\0';
+
+    int parsed = sscanf(buf, "%15s %255s %15s", req->method, req->path, req->version);
+    if (parsed != 3) return PARSE_FAIL;
+    return SUCCESS;
+}
+
+void send_metrics(struct load_balancer * lb) {
+    int client_fd = accept(lb->metrics_listener.fd,NULL,NULL);
+
+    struct http_req req = {0};
+    enum parse_req_result prr = parse_req(client_fd, &req);
+
+    if (prr == READ_FAIL) {
+        perror("send_metrics: unable to read from client\n");
+        close(client_fd);
+        return;
+    }
+
+    if (prr == PARSE_FAIL) {
+        fprintf(stderr, "send_metrics: Unable to parse http request\n");
+        close(client_fd);
+        return;
+    }
+
+
+    if(strcmp(req.method, "GET") == 0 && strcmp(req.path, "/metrics") == 0) {
+        char body[2056];
+        int off = 0;
+        off += snprintf(body + off, sizeof(body) - off,
+            "active_connections %d\n"
+            "registered_backends %d\n",
+            lb->session_table.num_connections,
+            lb->pool.num_backends);
+        for (int i = 0; i < lb->pool.num_backends && off < (int)sizeof(body); i++) {
+            struct backend *backend = &lb->pool.backends[i];
+            off += snprintf(body + off, sizeof(body) - off,
+                "backend{host=\"%s\",port=\"%d\"} healthy=%d connections=%d\n",
+                backend->host,
+                backend->port,
+                backend->healthy,
+                backend->connections);
+        }
+        dprintf(client_fd,
+            "HTTP/1.1 200 OK\r\n"
+            "Content-Type: text/plain\r\n"
+            "Content-Length: %d\r\n"
+            "\r\n"
+            "%s",
+            off,
+            body);
+    }
+    close(client_fd);
+}
+
 void init_loadbalancer(struct load_balancer * lb) {  
     lb->current_backend = 0;
     init_socket(&lb->client_listener, LISTEN_PORT);
     init_socket(&lb->registration_listener, REGISTER_PORT);
+    init_socket(&lb->metrics_listener, METRICS_PORT);
 }
 
 int init_pollfd(struct load_balancer * lb, struct pollfd * fds) {
@@ -49,6 +125,8 @@ int init_pollfd(struct load_balancer * lb, struct pollfd * fds) {
     fds[POLLFD_LISTEN_IDX].events = POLLIN;
     fds[POLLFD_REGISTRATION_IDX].fd = lb->registration_listener.fd;
     fds[POLLFD_REGISTRATION_IDX].events = POLLIN;
+    fds[POLLFD_METRICS_IDX].fd = lb->metrics_listener.fd;
+    fds[POLLFD_METRICS_IDX].events = POLLIN;
     for (int i = 0; i < lb->session_table.num_connections; i++) {
         fds[POLLFD_SESSION_STARTING_IDX + i * 2].fd = lb->session_table.connections[i].client_pollfd.fd;
         fds[POLLFD_SESSION_STARTING_IDX + i * 2].events = lb->session_table.connections[i].client_pollfd.events;
@@ -132,6 +210,9 @@ void run_loadbalancer(struct load_balancer * lb) {
 
         if (fds[POLLFD_REGISTRATION_IDX].revents & POLLIN) {
             handle_backend_connection(lb);
+        }
+        if (fds[POLLFD_METRICS_IDX].revents & POLLIN) {
+            send_metrics(lb);
         }
         process_ready_sessions(&lb->session_table);
     }

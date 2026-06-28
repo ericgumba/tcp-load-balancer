@@ -7,7 +7,7 @@ void pipe_data(int from_fd, int to_fd) {
     char buf[4096];
     ssize_t n = read(from_fd, buf, sizeof(buf));
     if (n <= 0) {  
-        printf("???");
+        printf("???\n");
         return; // EOF or error
     }
     write(to_fd, buf, n); 
