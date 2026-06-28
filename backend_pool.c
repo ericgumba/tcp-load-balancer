@@ -10,6 +10,17 @@ void init_backend_pool(struct backend_pool *pool) {
     pool->num_backends = 3;
 }
 
+bool all_unhealthy(struct backend_pool * pool) {
+    bool ret = true;
+    for (int i = 0; i < pool->num_backends; i++) {
+        if(pool->backends[i].healthy) {
+            ret = false;
+            break;
+        }
+    }
+    return ret;
+}
+
 bool contains(struct backend_pool * pool, char * host, int port) {
     for (int i = 0; i < pool->num_backends; i++) {
         if (strcmp(pool->backends[i].host, host) == 0 && pool->backends[i].port == port) {

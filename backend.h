@@ -1,5 +1,6 @@
 #ifndef BACKEND_H
 #define BACKEND_H
+
 struct backend {
     char host[64];
     int port;

@@ -33,6 +33,7 @@ void session_on_backend_ready(struct proxy_session * conn) {
 }
 
 struct proxy_session create_session(int client_fd, int backend_fd) {
+    printf("CREATING NEW PROXY SESSION\n");
     struct proxy_session conn;
 
     conn.client_fd = client_fd;

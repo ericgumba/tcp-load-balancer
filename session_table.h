@@ -15,4 +15,6 @@ void add_session(struct session_table * sess_table, struct proxy_session conn);
 void remove_session(struct session_table * sess_table, int index);
 void process_ready_sessions(struct session_table * sess_table);
 
+void copy_revents_into(struct session_table * sess_table, struct pollfd * pollfds, int starting_index);
+
 #endif
