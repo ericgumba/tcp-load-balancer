@@ -3,6 +3,8 @@ import time
 import socket
 from dataclasses import dataclass
 import re
+
+import pytest
 @dataclass
 class BackendMetric:
     host: str
@@ -28,6 +30,7 @@ def get_count(text: str, search_str: str):
         if line.startswith(search_str):
             return int(line.split()[-1])
     return 0
+
 def make_backend_metric(text: str):
     pattern = r'host="([^"]+)",port="(\d+)"\}\s+healthy=(\d+)\s+connections=(\d+)'
 
@@ -68,30 +71,37 @@ def get_metrics():
 
     return ret
 
+@pytest.fixture
+def basic_system():
+    try:
+        procs = []
+        lb = subprocess.Popen(["../../lb"])
+        time.sleep(1)
+        echo1 = subprocess.Popen(["../../echo_server", "9001"])
+        echo2 = subprocess.Popen(["../../echo_server", "9002"])
+        echo3 = subprocess.Popen(["../../echo_server", "9003"])
+        time.sleep(1)
+        procs += [lb, echo1, echo2, echo3]
 
-lb = subprocess.Popen(["./lb"])
-time.sleep(1)
-echo1 = subprocess.Popen(["./echo_server", "9001"])
-echo2 = subprocess.Popen(["./echo_server", "9002"])
-echo3 = subprocess.Popen(["./echo_server", "9003"])
-time.sleep(1)
+        yield
+    finally:
+        for p in procs:
+            p.terminate()
 
 
-metrics = get_metrics()
-print(metrics)
-assert metrics['active_connections'] == 0
-assert metrics['registered_backends'] == 3
+def test_metrics_initial_state(basic_system):
 
-host = '127.0.0.1'
-expected = [
-    BackendMetric(host=host, port=9001, healthy=True, connection_count=0),
-    BackendMetric(host=host, port=9002, healthy=True, connection_count=0),
-    BackendMetric(host=host, port=9003, healthy=True, connection_count=0),
-]
+    metrics = get_metrics()
+    print(metrics)
+    assert metrics['active_connections'] == 0
+    assert metrics['registered_backends'] == 3
 
-assert metrics['backends'] == expected
+    host = '127.0.0.1'
+    expected = [
+        BackendMetric(host=host, port=9001, healthy=True, connection_count=0),
+        BackendMetric(host=host, port=9002, healthy=True, connection_count=0),
+        BackendMetric(host=host, port=9003, healthy=True, connection_count=0),
+    ]
 
-lb.terminate()
-echo1.terminate()
-echo2.terminate()
-echo3.terminate() 
+    assert metrics['backends'] == expected
+    
