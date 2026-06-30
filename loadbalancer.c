@@ -65,6 +65,7 @@ enum parse_req_result parse_req(int fd, struct http_req * req) {
 }
 
 void send_metrics(struct load_balancer * lb) {
+    printf("Sending metrics \n");
     int client_fd = accept(lb->metrics_listener.fd,NULL,NULL);
 
     struct http_req req = {0};
