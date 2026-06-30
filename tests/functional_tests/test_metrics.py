@@ -73,24 +73,25 @@ def get_metrics():
 
 @pytest.fixture
 def basic_system():
+    procs = {}
     try:
-        procs = []
-        lb = subprocess.Popen(["../../lb"])
+        test_val = 42
+        procs['lb'] = subprocess.Popen(["../../lb"])
         time.sleep(1)
-        echo1 = subprocess.Popen(["../../echo_server", "9001"])
-        echo2 = subprocess.Popen(["../../echo_server", "9002"])
-        echo3 = subprocess.Popen(["../../echo_server", "9003"])
+        procs['echo1'] = subprocess.Popen(["../../echo_server", "9001"])
+        procs['echo2'] = subprocess.Popen(["../../echo_server", "9002"])
+        procs['echo3'] = subprocess.Popen(["../../echo_server", "9003"])
         time.sleep(1)
-        procs += [lb, echo1, echo2, echo3]
 
-        yield
+        yield procs
     finally:
-        for p in procs:
-            p.terminate()
+        for p in procs.values():
+            if p.poll() is None:
+                p.terminate()
+                p.wait(timeout=2)
 
 
-def test_metrics_initial_state(basic_system):
-
+def test_metrics_initial_state(basic_system): 
     metrics = get_metrics()
     print(metrics)
     assert metrics['active_connections'] == 0
@@ -104,4 +105,36 @@ def test_metrics_initial_state(basic_system):
     ]
 
     assert metrics['backends'] == expected
-    
+
+def test_backend_comes_back_up(basic_system):
+    procs = basic_system
+
+    procs['echo1'].terminate()
+    time.sleep(2)
+    procs["echo1"] = subprocess.Popen(["../../echo_server", "9001"])
+    time.sleep(2)
+
+    metrics = get_metrics()
+    host = '127.0.0.1'
+    expected = [
+        BackendMetric(host=host, port=9001, healthy=True, connection_count=0),
+        BackendMetric(host=host, port=9002, healthy=True, connection_count=0),
+        BackendMetric(host=host, port=9003, healthy=True, connection_count=0),
+    ]
+
+    assert metrics['backends'] == expected
+def test_backend_goes_down(basic_system):
+    procs = basic_system
+
+    procs['echo1'].terminate()
+    time.sleep(2)
+
+    metrics = get_metrics()
+    host = '127.0.0.1'
+    expected = [
+        BackendMetric(host=host, port=9001, healthy=False, connection_count=0),
+        BackendMetric(host=host, port=9002, healthy=True, connection_count=0),
+        BackendMetric(host=host, port=9003, healthy=True, connection_count=0),
+    ]
+
+    assert metrics['backends'] == expected
