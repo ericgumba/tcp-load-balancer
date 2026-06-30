@@ -11,5 +11,6 @@ struct backend_pool {
 
 bool all_unhealthy(struct backend_pool * pool);
 void init_backend_pool(struct backend_pool * pool);
+void health_check(struct backend_pool * pool);
 void register_backend(struct backend_pool * pool, char * host, int port);
 #endif

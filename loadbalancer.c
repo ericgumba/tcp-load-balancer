@@ -195,13 +195,18 @@ void run_loadbalancer(struct load_balancer * lb) {
         printf("NEW LOOP \n");
         struct pollfd fds[POLLFD_SESSION_STARTING_IDX + lb->session_table.num_connections * 2];
         int nfds = init_pollfd(lb, fds);
-        int n = poll(fds, nfds, -1);
+        int n = poll(fds, nfds, 1000);
+
+        health_check(&lb->pool);
+
+        
+
+
 
         // copy back revents back into session table
         copy_revents_into(&lb->session_table, fds, POLLFD_SESSION_STARTING_IDX);
 
         if (n <= 0) {
-            perror("poll");
             continue;
         } 
 
