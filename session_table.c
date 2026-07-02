@@ -21,7 +21,16 @@ void remove_session(struct session_table * sess_table, int i) {
     sess_table->num_connections--;
 }
 
+void log_sessions(struct session_table * sess_table) {
+    for (int i = 0; i < sess_table->num_connections; i++) {
+
+        struct proxy_session * conn = &sess_table->connections[i];
+        printf("SESSION %d, CLIENT: %d BACKEND: %d \n", i, conn->client_fd, conn->backend_fd);
+    }
+}
+
 void process_ready_sessions(struct session_table * sess_table) {
+    // log_sessions(sess_table);
     for(int i = 0; i < sess_table->num_connections; i++) {
         struct proxy_session * conn = &sess_table->connections[i];
         if ( conn->client_pollfd.revents & POLLIN) {
