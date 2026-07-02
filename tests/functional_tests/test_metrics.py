@@ -97,6 +97,55 @@ def basic_system():
             p.terminate()
             p.wait(timeout=2)
 
+def test_balanced_connections(basic_system):
+    procs = basic_system(2)
+    clients = []
+    for _ in range(4):
+        clients.append(Client())
+    
+    metrics = get_metrics()
+
+    assert metrics['active_connections'] == 4
+    assert metrics['registered_backends'] == 2
+
+    host = '127.0.0.1'
+
+    expected = [
+        BackendMetric(host=host, port=9001, healthy=True, connection_count=2),
+        BackendMetric(host=host, port=9002, healthy=True, connection_count=2),
+    ]
+    assert metrics['backends'] == expected
+
+def test_teardown_backend(basic_system):
+    procs = basic_system(1)
+    clients = []
+    for _ in range(4):
+        clients.append(Client())
+    
+    metrics = get_metrics()
+
+    assert metrics['active_connections'] == 4
+    assert metrics['registered_backends'] == 1
+
+    host = '127.0.0.1'
+
+    expected = [
+        BackendMetric(host=host, port=9001, healthy=True, connection_count=4),
+    ]
+    assert metrics['backends'] == expected
+
+    procs['echo1'].terminate()
+
+    metrics = get_metrics()
+    assert metrics['active_connections'] == 0
+    assert metrics['registered_backends'] == 0
+    expected = [
+        BackendMetric(host=host, port=9001, healthy=False, connection_count=0),
+    ]
+    assert metrics['backends'] == expected
+
+
+
 
 def test_metrics_initial_state(basic_system): 
     procs = basic_system()
