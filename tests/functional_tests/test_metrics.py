@@ -135,10 +135,11 @@ def test_teardown_backend(basic_system):
     assert metrics['backends'] == expected
 
     procs['echo1'].terminate()
+    time.sleep(1)
 
     metrics = get_metrics()
     assert metrics['active_connections'] == 0
-    assert metrics['registered_backends'] == 0
+    assert metrics['registered_backends'] == 1
     expected = [
         BackendMetric(host=host, port=9001, healthy=False, connection_count=0),
     ]

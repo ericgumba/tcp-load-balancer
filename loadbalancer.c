@@ -147,8 +147,9 @@ void handle_client_connection(struct load_balancer * lb) {
         return;
     }
     int backend_fd = -1;
+    struct backend * backend = NULL;
     for (int attempts = 0; attempts < lb->pool.num_backends; attempts++) {
-        struct backend * backend = select_backend(lb);
+        backend = select_backend(lb);
         if (backend == NULL) {
             printf("no healthy backends available\n");
             break;
@@ -165,6 +166,7 @@ void handle_client_connection(struct load_balancer * lb) {
     
     if (backend_fd >= 0) {
         struct proxy_session conn = create_session(client_fd, backend_fd);
+        conn.backend = backend;
         add_session(&lb->session_table, conn);
     } else {
         close(client_fd);

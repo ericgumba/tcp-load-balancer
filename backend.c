@@ -11,7 +11,11 @@ int open_backend_socket(struct backend * backend) {
     addr.sin_family = AF_INET;
     addr.sin_port = htons(backend->port);
     inet_pton(AF_INET, backend->host, &addr.sin_addr);
-    return connect(backend_fd, (struct sockaddr *)&addr, sizeof(addr));
+    if (connect(backend_fd, (struct sockaddr *)&addr, sizeof(addr))){
+        close(backend_fd);
+        return -1;
+    }
+    return backend_fd;
 }
 
 int connect_backend(struct backend * backend) {

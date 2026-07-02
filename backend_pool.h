@@ -4,7 +4,7 @@
 #include <stdbool.h>
 
 struct backend_pool {
-    struct backend backends[3];
+    struct backend backends[1024];
     int num_backends; 
     
 };

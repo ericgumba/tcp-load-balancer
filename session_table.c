@@ -17,8 +17,10 @@ void copy_revents_into(struct session_table * sess_table, struct pollfd * pollfd
 }
 
 void remove_session(struct session_table * sess_table, int i) {
-    sess_table->connections[i] = sess_table->connections[sess_table->num_connections];
+    sess_table->connections[i].backend->connections--;
+    sess_table->connections[i] = sess_table->connections[sess_table->num_connections - 1];
     sess_table->num_connections--;
+    // sess_table->connections[i].
 }
 
 void log_sessions(struct session_table * sess_table) {
@@ -29,20 +31,36 @@ void log_sessions(struct session_table * sess_table) {
     }
 }
 
+void remove_dead_sessions(struct session_table * sess_table) {
+    for(int i = 0; i < sess_table->num_connections; i++) {
+        if (!sess_table->connections[i].backend->healthy) {
+            remove_session(sess_table, i);
+        }
+    }
+}
+
 void process_ready_sessions(struct session_table * sess_table) {
     // log_sessions(sess_table);
     for(int i = 0; i < sess_table->num_connections; i++) {
         struct proxy_session * conn = &sess_table->connections[i];
+
+        if ( !conn->backend->healthy ) {
+            remove_session(sess_table, i);
+            continue;
+        }
+
         if ( conn->client_pollfd.revents & POLLIN) {
             session_on_client_ready(conn);
         }
 
         if ( conn->client_pollfd.revents & (POLLERR | POLLHUP)) {
             remove_session(sess_table, i);
+            continue;
         }
 
         if ( conn->backend_pollfd.revents & (POLLERR | POLLHUP)) {
             remove_session(sess_table, i);
+            continue;
         }
         
         if(conn->backend_pollfd.revents & POLLIN) {
