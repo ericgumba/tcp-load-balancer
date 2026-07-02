@@ -11,7 +11,7 @@ struct backend {
 };
 
 int connect_backend(struct backend * backend); 
-
+int open_backend_socket(struct backend * backend);
 #endif
 // {loadbalancer}
 // accepts connections from clients and forwards them to backends

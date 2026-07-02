@@ -94,6 +94,7 @@ void send_metrics(struct load_balancer * lb) {
             lb->pool.num_backends);
         for (int i = 0; i < lb->pool.num_backends && off < (int)sizeof(body); i++) {
             struct backend *backend = &lb->pool.backends[i];
+            printf("GUMBA %d \n", backend->connections);
             off += snprintf(body + off, sizeof(body) - off,
                 "backend{host=\"%s\",port=\"%d\"} healthy=%d connections=%d\n",
                 backend->host,
@@ -152,7 +153,9 @@ void handle_client_connection(struct load_balancer * lb) {
             printf("no healthy backends available\n");
             break;
         }
+        printf("Eric BEFORE %d \n", backend->connections);
         backend_fd = connect_backend(backend);
+        printf("Eric %d \n", backend->connections);
         if (backend_fd < 0) {
             backend->healthy = 0;
             continue;
@@ -168,7 +171,7 @@ void handle_client_connection(struct load_balancer * lb) {
     }
 }
 
-void handle_backend_connection(struct load_balancer * lb) {
+void handle_backend_register(struct load_balancer * lb) {
 
     printf("ATTEMPTING TO REG\n");
     int backend_register_fd = accept(lb->registration_listener.fd, NULL, NULL);
@@ -199,10 +202,6 @@ void run_loadbalancer(struct load_balancer * lb) {
 
         health_check(&lb->pool);
 
-        
-
-
-
         // copy back revents back into session table
         copy_revents_into(&lb->session_table, fds, POLLFD_SESSION_STARTING_IDX);
 
@@ -215,7 +214,7 @@ void run_loadbalancer(struct load_balancer * lb) {
         }
 
         if (fds[POLLFD_REGISTRATION_IDX].revents & POLLIN) {
-            handle_backend_connection(lb);
+            handle_backend_register(lb);
         }
         if (fds[POLLFD_METRICS_IDX].revents & POLLIN) {
             send_metrics(lb);

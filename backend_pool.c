@@ -21,7 +21,7 @@ void health_check(struct backend_pool * pool) {
     for(int i =0; i < pool->num_backends; i++) {
         struct backend *b = &pool->backends[i];
 
-        int fd = connect_backend(b);
+        int fd = open_backend_socket(b);
 
         if (fd < 0) {
             b->healthy = 0;
