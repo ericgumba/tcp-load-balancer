@@ -13,24 +13,7 @@
 #define POLLFD_REGISTRATION_IDX 1
 #define POLLFD_METRICS_IDX 2
 #define POLLFD_SESSION_STARTING_IDX 3
-struct http_req {
-    char method[16];
-    char path[256];
-    char version[16];
-};
 
-void init_socket(struct listener * l, int port) {
-    l->fd = socket(AF_INET, SOCK_STREAM, 0);
-    printf("%d \n", l->fd);
-    int opt = 1;
-    setsockopt(l->fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
-    l->addr.sin_family = AF_INET;
-    l->addr.sin_port = htons(port);
-    l->addr.sin_addr.s_addr = INADDR_ANY;
-    bind(l->fd, (struct sockaddr *)&l->addr, sizeof(l->addr));
-    listen(l->fd, 128);
-}
- 
 struct backend * select_backend(struct load_balancer * lb) {
     for (int attempts = 0; attempts < lb->pool.num_backends; attempts++) {
         struct backend * backend = &lb->pool.backends[lb->current_backend];
@@ -42,6 +25,12 @@ struct backend * select_backend(struct load_balancer * lb) {
     }
     return NULL;
 }
+
+struct http_req {
+    char method[16];
+    char path[256];
+    char version[16];
+};
 
 enum parse_req_result {
     READ_FAIL,
@@ -116,9 +105,9 @@ void send_metrics(struct load_balancer * lb) {
 
 void init_loadbalancer(struct load_balancer * lb) {  
     lb->current_backend = 0;
-    init_socket(&lb->client_listener, LISTEN_PORT);
-    init_socket(&lb->registration_listener, REGISTER_PORT);
-    init_socket(&lb->metrics_listener, METRICS_PORT);
+    init_listener(&lb->client_listener, LISTEN_PORT);
+    init_listener(&lb->registration_listener, REGISTER_PORT);
+    init_listener(&lb->metrics_listener, METRICS_PORT);
 }
 
 int init_pollfd(struct load_balancer * lb, struct pollfd * fds) {
@@ -139,13 +128,12 @@ int init_pollfd(struct load_balancer * lb, struct pollfd * fds) {
 }
 
 void handle_client_connection(struct load_balancer * lb) {
-
-    int client_fd = accept(lb->client_listener.fd, NULL, NULL);
     if (lb->pool.num_backends == 0) {
         printf("No backends available\n");
-        close(client_fd);
         return;
     }
+
+    int client_fd = accept(lb->client_listener.fd, NULL, NULL);
     int backend_fd = -1;
     struct backend * backend = NULL;
     for (int attempts = 0; attempts < lb->pool.num_backends; attempts++) {
@@ -154,9 +142,8 @@ void handle_client_connection(struct load_balancer * lb) {
             printf("no healthy backends available\n");
             break;
         }
-        printf("Eric BEFORE %d \n", backend->connections);
-        backend_fd = connect_backend(backend);
-        printf("Eric %d \n", backend->connections);
+
+        backend_fd = connect_backend(backend); 
         if (backend_fd < 0) {
             backend->healthy = 0;
             continue;
@@ -223,5 +210,4 @@ void run_loadbalancer(struct load_balancer * lb) {
         }
         process_ready_sessions(&lb->session_table);
     }
-        
 }

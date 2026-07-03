@@ -12,15 +12,11 @@
 #include <sys/wait.h>
 #include <poll.h>
 #include "session_table.h"
+#include "listener.h"
 #ifndef LOADBALANCER_H
 #define LOADBALANCER_H
 #define MAX_CONNECTIONS 1024
 
-struct listener {
-    int fd;
-    struct pollfd pollfd;
-    struct sockaddr_in addr;
-};
 
 struct load_balancer {
     struct backend_pool pool;
