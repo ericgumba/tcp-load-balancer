@@ -1,6 +1,6 @@
 #include "backend.h"
 #include "backend_pool.h" 
-
+#include "metrics_server.h"
 #define LISTEN_PORT 8080
 #define REGISTER_PORT 7070
 #define METRICS_PORT 7071
@@ -23,7 +23,7 @@ struct load_balancer {
     struct session_table session_table;
     struct listener client_listener;
     struct listener registration_listener;
-    struct listener metrics_listener;
+    struct metrics_server ms;
     int current_backend; // for round-robin
     
 };

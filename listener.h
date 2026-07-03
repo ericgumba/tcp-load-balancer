@@ -1,4 +1,5 @@
-
+#ifndef LISTENER_H
+#define LISTENER_H
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -14,3 +15,4 @@ struct listener {
 };
 
 void init_listener(struct listener * l, int port);
+#endif

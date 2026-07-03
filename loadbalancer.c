@@ -26,88 +26,34 @@ struct backend * select_backend(struct load_balancer * lb) {
     return NULL;
 }
 
-struct http_req {
-    char method[16];
-    char path[256];
-    char version[16];
-};
+int build_metrics_body(struct load_balancer *lb, char *body, size_t body_size) {
+    int off = 0;
 
-enum parse_req_result {
-    READ_FAIL,
-    PARSE_FAIL,
-    SUCCESS
-};
+    off += snprintf(body + off, body_size - off,
+        "active_connections %d\n"
+        "registered_backends %d\n",
+        lb->session_table.num_connections,
+        lb->pool.num_backends);
 
-enum parse_req_result parse_req(int fd, struct http_req * req) {
-
-    char buf[2057];
-    ssize_t n = read(fd, buf, sizeof(buf)-1);
-    if (n < 0) {
-        return READ_FAIL;
+    for (int i = 0; i < lb->pool.num_backends && off < (int)body_size; i++) {
+        struct backend *backend = &lb->pool.backends[i];
+        printf("GUMBA %d \n", backend->connections);
+        off += snprintf(body + off, body_size - off,
+            "backend{host=\"%s\",port=\"%d\"} healthy=%d connections=%d\n",
+            backend->host,
+            backend->port,
+            backend->healthy,
+            backend->connections);
     }
 
-    buf[n] = '\0';
-
-    int parsed = sscanf(buf, "%15s %255s %15s", req->method, req->path, req->version);
-    if (parsed != 3) return PARSE_FAIL;
-    return SUCCESS;
-}
-
-void send_metrics(struct load_balancer * lb) {
-    printf("Sending metrics \n");
-    int client_fd = accept(lb->metrics_listener.fd,NULL,NULL);
-
-    struct http_req req = {0};
-    enum parse_req_result prr = parse_req(client_fd, &req);
-
-    if (prr == READ_FAIL) {
-        perror("send_metrics: unable to read from client\n");
-        close(client_fd);
-        return;
-    }
-
-    if (prr == PARSE_FAIL) {
-        fprintf(stderr, "send_metrics: Unable to parse http request\n");
-        close(client_fd);
-        return;
-    }
-
-
-    if(strcmp(req.method, "GET") == 0 && strcmp(req.path, "/metrics") == 0) {
-        char body[2056];
-        int off = 0;
-        off += snprintf(body + off, sizeof(body) - off,
-            "active_connections %d\n"
-            "registered_backends %d\n",
-            lb->session_table.num_connections,
-            lb->pool.num_backends);
-        for (int i = 0; i < lb->pool.num_backends && off < (int)sizeof(body); i++) {
-            struct backend *backend = &lb->pool.backends[i];
-            printf("GUMBA %d \n", backend->connections);
-            off += snprintf(body + off, sizeof(body) - off,
-                "backend{host=\"%s\",port=\"%d\"} healthy=%d connections=%d\n",
-                backend->host,
-                backend->port,
-                backend->healthy,
-                backend->connections);
-        }
-        dprintf(client_fd,
-            "HTTP/1.1 200 OK\r\n"
-            "Content-Type: text/plain\r\n"
-            "Content-Length: %d\r\n"
-            "\r\n"
-            "%s",
-            off,
-            body);
-    }
-    close(client_fd);
+    return off;
 }
 
 void init_loadbalancer(struct load_balancer * lb) {  
     lb->current_backend = 0;
     init_listener(&lb->client_listener, LISTEN_PORT);
     init_listener(&lb->registration_listener, REGISTER_PORT);
-    init_listener(&lb->metrics_listener, METRICS_PORT);
+    init_listener(&lb->ms.metrics_listener, METRICS_PORT);
 }
 
 int init_pollfd(struct load_balancer * lb, struct pollfd * fds) {
@@ -116,7 +62,7 @@ int init_pollfd(struct load_balancer * lb, struct pollfd * fds) {
     fds[POLLFD_LISTEN_IDX].events = POLLIN;
     fds[POLLFD_REGISTRATION_IDX].fd = lb->registration_listener.fd;
     fds[POLLFD_REGISTRATION_IDX].events = POLLIN;
-    fds[POLLFD_METRICS_IDX].fd = lb->metrics_listener.fd;
+    fds[POLLFD_METRICS_IDX].fd = lb->ms.metrics_listener.fd;
     fds[POLLFD_METRICS_IDX].events = POLLIN;
     for (int i = 0; i < lb->session_table.num_connections; i++) {
         fds[POLLFD_SESSION_STARTING_IDX + i * 2].fd = lb->session_table.connections[i].client_pollfd.fd;
@@ -182,6 +128,12 @@ void handle_backend_register(struct load_balancer * lb) {
     close(backend_register_fd); 
 }
 
+void handle_metrics(struct load_balancer * lb) {
+    char body[4096] = {0};
+    build_metrics_body(lb, body, sizeof(body));
+    send_metrics(&lb->ms, body);
+}
+
 void run_loadbalancer(struct load_balancer * lb) {
     while (1) {
         printf("NEW LOOP \n");
@@ -206,7 +158,7 @@ void run_loadbalancer(struct load_balancer * lb) {
             handle_backend_register(lb);
         }
         if (fds[POLLFD_METRICS_IDX].revents & POLLIN) {
-            send_metrics(lb);
+            handle_metrics(lb);
         }
         process_ready_sessions(&lb->session_table);
     }
