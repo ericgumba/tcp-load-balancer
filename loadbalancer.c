@@ -54,6 +54,9 @@ void init_loadbalancer(struct load_balancer * lb) {
     init_listener(&lb->client_listener, LISTEN_PORT);
     init_listener(&lb->registration_listener, REGISTER_PORT);
     init_listener(&lb->ms.metrics_listener, METRICS_PORT);
+    lb->pool = (struct backend_pool){0};
+    lb->session_table = (struct session_table){0};
+    
 }
 
 int init_pollfd(struct load_balancer * lb, struct pollfd * fds) {
@@ -72,38 +75,47 @@ int init_pollfd(struct load_balancer * lb, struct pollfd * fds) {
     }
     return nfds;
 }
+ 
+struct backend_connection {
+    int fd;
+    struct backend * backend;
+    bool success;
+};
 
-void handle_client_connection(struct load_balancer * lb) {
-    if (lb->pool.num_backends == 0) {
-        printf("No backends available\n");
-        return;
-    }
-
-    int client_fd = accept(lb->client_listener.fd, NULL, NULL);
-    int backend_fd = -1;
-    struct backend * backend = NULL;
+struct backend_connection connect_healthy_backend(struct load_balancer * lb) {
+    struct backend_connection ret = {.fd = -1, .backend = NULL, .success = false};
     for (int attempts = 0; attempts < lb->pool.num_backends; attempts++) {
-        backend = select_backend(lb);
-        if (backend == NULL) {
+        ret.backend = select_backend(lb);
+        if (ret.backend == NULL) {
             printf("no healthy backends available\n");
-            break;
+            return ret;
         }
 
-        backend_fd = connect_backend(backend); 
-        if (backend_fd < 0) {
-            backend->healthy = 0;
+        ret.fd = connect_backend(ret.backend); 
+        if (ret.fd < 0) {
+            ret.backend->healthy = 0;
             continue;
         }
-        break;
+        ret.success = true;
+        return ret;
+    }
+    return ret;
+}
+
+void handle_client_connection(struct load_balancer * lb) {
+    int client_fd = accept(lb->client_listener.fd, NULL, NULL);
+    if (client_fd < 0) return;
+
+    struct backend_connection bc = connect_healthy_backend(lb);
+
+    if (!bc.success) {
+        close(client_fd);
+        return;
     }
     
-    if (backend_fd >= 0) {
-        struct proxy_session conn = create_session(client_fd, backend_fd);
-        conn.backend = backend;
-        add_session(&lb->session_table, conn);
-    } else {
-        close(client_fd);
-    }
+    struct proxy_session conn = create_session(client_fd, bc.fd);
+    conn.backend = bc.backend;
+    add_session(&lb->session_table, conn);
 }
 
 void handle_backend_register(struct load_balancer * lb) {
