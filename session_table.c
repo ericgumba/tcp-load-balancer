@@ -20,23 +20,6 @@ void remove_session(struct session_table * sess_table, int i) {
     sess_table->connections[i].backend->connections--;
     sess_table->connections[i] = sess_table->connections[sess_table->num_connections - 1];
     sess_table->num_connections--;
-    // sess_table->connections[i].
-}
-
-void log_sessions(struct session_table * sess_table) {
-    for (int i = 0; i < sess_table->num_connections; i++) {
-
-        struct proxy_session * conn = &sess_table->connections[i];
-        printf("SESSION %d, CLIENT: %d BACKEND: %d \n", i, conn->client_fd, conn->backend_fd);
-    }
-}
-
-void remove_dead_sessions(struct session_table * sess_table) {
-    for(int i = 0; i < sess_table->num_connections; i++) {
-        if (!sess_table->connections[i].backend->healthy) {
-            remove_session(sess_table, i);
-        }
-    }
 }
 
 void process_ready_sessions(struct session_table * sess_table) {

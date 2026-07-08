@@ -9,5 +9,4 @@ void init_listener(struct listener * l, int port) {
     l->addr.sin_addr.s_addr = INADDR_ANY;
     bind(l->fd, (struct sockaddr *)&l->addr, sizeof(l->addr));
     listen(l->fd, 128);
-}
- //
+} 

@@ -1,7 +1,5 @@
-1.BUG, unregistering and reregistering backend still displays that particular backend as unhealthy.
-2.Periodic health checks
-3.Every few seconds, attempt to connect to unhealthy backends and mark them healthy if they respond.
-4.Metrics
+
+1.Metrics
 Print or expose:
 active_sessions
 registered_backends
@@ -9,31 +7,22 @@ healthy_backends
 total_connections
 backend_failures
 bytes_proxied
-Config file
+2.Config file
 Support both:
 ./lb backends.conf
-5.Non-blocking sockets
-6.Make client/backend sockets non-blocking so one slow connection cannot freeze the whole load balancer.
-7. Fix partial reads/writes
-8. Right now you may assume recv()/send() transfers everything. Real TCP does not guarantee that. Add per-session buffers:
+3.Non-blocking sockets
+Make client/backend sockets non-blocking so one slow connection cannot freeze the whole load balancer.
+4. Fix partial reads/writes
+5. Right now you may assume recv()/send() transfers everything. Real TCP does not guarantee that. Add per-session buffers:
 client_to_backend_buf
 backend_to_client_buf
-Better session cleanup
-9. When a backend dies, remove every session using that backend, not just one fd.
-10. Load-balancing policy
-11. Add something beyond round-robin:
+7. Load-balancing policy
+Add something beyond round-robin:
 round_robin
 least_connections
 random
 healthy_only
-Config file
-Instead of hardcoded ports:
-listen_port=8080
-metrics_port=9090
-backend=127.0.0.1:9001
-backend=127.0.0.1:9002
-backend=127.0.0.1:9003
-12. Tests
+8. Tests
 - round-robin test
 - unhealthy backend skipped
 - backend recovery test
@@ -42,5 +31,4 @@ backend=127.0.0.1:9003
 Switch from poll to epoll
 
 5. Performance tests
-After your poll() version works, build an epoll version. That becomes a real systems project.
-13. 
+After poll() version works, build an epoll version.

@@ -119,13 +119,10 @@ void handle_client_connection(struct load_balancer * lb) {
 }
 
 void handle_backend_register(struct load_balancer * lb) {
-
-    printf("ATTEMPTING TO REG\n");
     int backend_register_fd = accept(lb->registration_listener.fd, NULL, NULL);
     char buf[4096];
     ssize_t n = read(backend_register_fd, buf, sizeof(buf));
-    if (n <= 0) {  
-        printf("???\n");
+    if (n <= 0) {   
         close(backend_register_fd); // EOF or error
         return;
     }
@@ -147,15 +144,13 @@ void handle_metrics(struct load_balancer * lb) {
 }
 
 void run_loadbalancer(struct load_balancer * lb) {
-    while (1) {
-        printf("NEW LOOP \n");
+    while (1) { 
         struct pollfd fds[POLLFD_SESSION_STARTING_IDX + lb->session_table.num_connections * 2];
         int nfds = init_pollfd(lb, fds);
         int n = poll(fds, nfds, 1000);
 
         health_check(&lb->pool);
 
-        // copy back revents back into session table
         copy_revents_into(&lb->session_table, fds, POLLFD_SESSION_STARTING_IDX);
 
         if (n <= 0) {
