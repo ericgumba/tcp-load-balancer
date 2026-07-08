@@ -11,11 +11,15 @@
 #define BACKEND_HOST "127.0.0.1"
 
 
-int main() {
+int main(int argc, char * argv[]) {
+    
+    struct config c = {0};
+    if (argc > 1) c = parse_config_file(argv[1]);
     printf("Starting load balancer on port %d\n", LISTEN_PORT);
     struct load_balancer lb = {0};
     printf("INIT\n");
     init_loadbalancer(&lb);
+    if(c.valid) load_config(&lb, &c);
     printf("RUN\n");
     run_loadbalancer(&lb);
 

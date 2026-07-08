@@ -13,6 +13,7 @@
 #include <poll.h>
 #include "session_table.h"
 #include "listener.h"
+#include "config.h"
 #ifndef LOADBALANCER_H
 #define LOADBALANCER_H
 #define MAX_CONNECTIONS 1024
@@ -27,6 +28,8 @@ struct load_balancer {
     int current_backend; // for round-robin
     
 };
+
+void load_config(struct load_balancer * lb, struct config * cfg);
 
 void init_loadbalancer(struct load_balancer * lb);
 

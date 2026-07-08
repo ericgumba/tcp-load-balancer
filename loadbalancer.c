@@ -59,6 +59,11 @@ void init_loadbalancer(struct load_balancer * lb) {
     
 }
 
+void load_config(struct load_balancer * lb, struct config * cfg) {
+    lb->pool = cfg->p;
+
+}
+
 int init_pollfd(struct load_balancer * lb, struct pollfd * fds) {
     int nfds = POLLFD_SESSION_STARTING_IDX + lb->session_table.num_connections * 2;
     fds[POLLFD_LISTEN_IDX].fd = lb->client_listener.fd;
