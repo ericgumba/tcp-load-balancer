@@ -14,17 +14,7 @@
 #define POLLFD_METRICS_IDX 2
 #define POLLFD_SESSION_STARTING_IDX 3
 
-struct backend * select_backend(struct load_balancer * lb) {
-    for (int attempts = 0; attempts < lb->pool.num_backends; attempts++) {
-        struct backend * backend = &lb->pool.backends[lb->current_backend];
-        lb->current_backend = (lb->current_backend + 1) % lb->pool.num_backends;
-        if(backend->healthy) {
-            return backend;
-        }
-
-    }
-    return NULL;
-}
+ 
 
 int build_metrics_body(struct load_balancer *lb, char *body, size_t body_size) {
     int off = 0;

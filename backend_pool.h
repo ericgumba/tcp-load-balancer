@@ -3,11 +3,7 @@
 #include "backend.h"
 #include <stdbool.h>
 
-enum strategy {
-    ROUND_ROBIN = 0,
-    LEAST_CONNECTIONS = 1
-};
-
+#include <strategy.h>
 
 struct backend_pool {
     enum strategy strategy;
