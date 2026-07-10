@@ -48,10 +48,9 @@ void init_loadbalancer(struct load_balancer * lb) {
     
 }
 
-void load_config(struct load_balancer * lb, struct config * cfg) {
+void configure_pool(struct load_balancer * lb, struct config * cfg) {
     lb->pool = (struct backend_pool){0};
-    lb->pool = cfg->p;
-    printf("POOL STRAT %d, sds \n", lb->pool.strategy);
+    if (cfg) lb->pool = cfg->p; 
     init_backend_pool(&lb->pool);
 
 }

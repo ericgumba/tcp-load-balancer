@@ -28,7 +28,7 @@ struct load_balancer {
     
 };
 
-void load_config(struct load_balancer * lb, struct config * cfg);
+void configure_pool(struct load_balancer * lb, struct config * cfg);
 
 void init_loadbalancer(struct load_balancer * lb);
 
