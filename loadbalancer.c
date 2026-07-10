@@ -44,13 +44,15 @@ void init_loadbalancer(struct load_balancer * lb) {
     init_listener(&lb->client_listener, LISTEN_PORT);
     init_listener(&lb->registration_listener, REGISTER_PORT);
     init_listener(&lb->ms.metrics_listener, METRICS_PORT);
-    lb->pool = (struct backend_pool){0};
     lb->session_table = (struct session_table){0};
     
 }
 
 void load_config(struct load_balancer * lb, struct config * cfg) {
+    lb->pool = (struct backend_pool){0};
     lb->pool = cfg->p;
+    printf("POOL STRAT %d, sds \n", lb->pool.strategy);
+    init_backend_pool(&lb->pool);
 
 }
 

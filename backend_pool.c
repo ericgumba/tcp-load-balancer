@@ -18,6 +18,7 @@ struct backend * round_robin(struct backend_pool *pool) {
         pool->rr_index = (pool->rr_index + 1) % pool->num_backends;
         if (ret->healthy) break;
     }
+    return ret;
 }
 
 struct backend * least_connections(struct backend_pool *pool) {
@@ -25,7 +26,7 @@ struct backend * least_connections(struct backend_pool *pool) {
     struct backend * ret = NULL;
 
     for (int i = 0; i < pool->num_backends; i++) {
-        if (pool->backends[i].connections < min_conns && &pool->backends[i].healthy) {
+        if (pool->backends[i].connections < min_conns && pool->backends[i].healthy) {
             ret = &pool->backends[i];
             min_conns = ret->connections;
         }

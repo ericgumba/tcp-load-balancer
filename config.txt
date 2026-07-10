@@ -1,3 +1,4 @@
 backend port=9001 host=127.0.0.1
 backend port=9002 host=127.0.0.1
 backend port=9003 host=127.0.0.1
+strategy=least_connections

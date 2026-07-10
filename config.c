@@ -17,6 +17,7 @@ struct config parse_config_file(char * file) {
     while (getline(&line, &len, f) != -1) {
         char starting[20];
         sscanf(line, "%19s", starting);
+        printf("SIGH \n");
 
         if (strstr(line, "backend")) {
             char * port_ptr = strstr(line, "port=");
@@ -31,8 +32,13 @@ struct config parse_config_file(char * file) {
             register_backend(&ret.p, host_name, port);
         }
         if (strstr(line, "strategy=")) {
-            char * strat = strstr(line, "port=");
-            if (strcmp(strat, "least_connections")) ret.s = LEAST_CONNECTIONS;
+            printf("YESYES\n");
+            char * strat = strstr(line, "strategy=");
+            if (strat)
+            if (strcmp(strat, "least_connections")){ 
+                printf("least connections\n");
+                ret.p.strategy = LEAST_CONNECTIONS;
+            }
             // defaults to round_robin
         }
 

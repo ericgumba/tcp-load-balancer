@@ -3,7 +3,7 @@
 #include "backend.h"
 #include <stdbool.h>
 
-#include <strategy.h>
+#include "strategy.h"
 
 struct backend_pool {
     enum strategy strategy;
