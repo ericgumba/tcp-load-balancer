@@ -89,8 +89,9 @@ struct backend_connection {
 
 struct backend_connection connect_healthy_backend(struct load_balancer * lb) {
     struct backend_connection ret = {.fd = -1, .backend = NULL, .success = false};
+
     for (int attempts = 0; attempts < lb->pool.num_backends; attempts++) {
-        ret.backend = select_backend(lb);
+        ret.backend = lb->pool.select(&lb->pool);
         if (ret.backend == NULL) {
             printf("no healthy backends available\n");
             return ret;

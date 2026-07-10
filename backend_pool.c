@@ -9,12 +9,35 @@
 #include <stdio.h> 
 #include <stdbool.h>
 #include <sys/socket.h>
+#include <limits.h>
+
+struct backend * round_robin(struct backend_pool *pool) {
+    struct backend * ret = NULL;
+    for (int i = 0; i < pool->num_backends; i++) {
+        ret = &pool->backends[pool->rr_index];
+        pool->rr_index = (pool->rr_index + 1) % pool->num_backends;
+        if (ret->healthy) break;
+    }
+}
+
+struct backend * least_connections(struct backend_pool *pool) {
+    int min_conns = INT_MAX;
+    struct backend * ret = NULL;
+
+    for (int i = 0; i < pool->num_backends; i++) {
+        if (pool->backends[i].connections < min_conns && &pool->backends[i].healthy) {
+            ret = &pool->backends[i];
+            min_conns = ret->connections;
+        }
+    }
+
+    return ret;
+
+}
 
 void init_backend_pool(struct backend_pool *pool) {
-    pool->backends[0] = (struct backend){"localhost", 9001, 1, 0};
-    pool->backends[1] = (struct backend){"localhost", 9002, 1, 0};
-    pool->backends[2] = (struct backend){"localhost", 9003, 1, 0};
-    pool->num_backends = 3;
+    if (pool->strategy == ROUND_ROBIN) pool->select = round_robin;
+    else pool->select = least_connections;
 }
 
 void health_check(struct backend_pool * pool) {

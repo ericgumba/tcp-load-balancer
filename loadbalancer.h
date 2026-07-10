@@ -18,7 +18,6 @@
 #define LOADBALANCER_H
 #define MAX_CONNECTIONS 1024
 
-
 struct load_balancer {
     struct backend_pool pool;
     struct session_table session_table;

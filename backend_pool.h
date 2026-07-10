@@ -3,9 +3,18 @@
 #include "backend.h"
 #include <stdbool.h>
 
+enum strategy {
+    ROUND_ROBIN = 0,
+    LEAST_CONNECTIONS = 1
+};
+
+
 struct backend_pool {
-    struct backend backends[1024];
-    int num_backends; 
+    enum strategy strategy;
+    struct backend backends[1024]; 
+    struct backend * (*select)(struct backend_pool * self);
+    int num_backends;
+    int rr_index;
     
 };
 
