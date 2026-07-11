@@ -83,8 +83,10 @@ def get_metrics():
 @pytest.fixture
 def basic_system():
     procs = {}
-    def start(num_backends=3): 
-        procs['lb'] = subprocess.Popen(["../../lb"])
+    def start(num_backends=3, cfg=None):
+        arg_list = ["../../lb"]
+        if cfg: arg_list.append(cfg)
+        procs['lb'] = subprocess.Popen(arg_list)
         time.sleep(1)
         for i in range(num_backends):
             procs[f"echo{i+1}"] = subprocess.Popen(["../../echo_server", f"{9001 + i}"])
@@ -115,6 +117,46 @@ def test_balanced_connections(basic_system):
         BackendMetric(host=host, port=9002, healthy=True, connection_count=2),
     ]
     assert metrics['backends'] == expected
+
+def test_least_connections(basic_system):
+    procs = basic_system(2,"test_config")
+    clients = []
+    for _ in range(4):
+        clients.append(Client())
+    time.sleep(1)
+    metrics = get_metrics()
+    host = '127.0.0.1'
+    expected = [
+        BackendMetric(host=host, port=9001, healthy=True, connection_count=2),
+        BackendMetric(host=host, port=9002, healthy=True, connection_count=2),
+    ]
+    assert Counter(metrics['backends']) == Counter(expected)
+
+    procs['echo1'].terminate()
+    time.sleep(2)
+    expected = [
+        BackendMetric(host=host, port=9002, healthy=True, connection_count=2),
+        BackendMetric(host=host, port=9001, healthy=False, connection_count=0),
+    ]
+    metrics = get_metrics()
+    assert Counter(metrics['backends']) == Counter(expected)
+
+    procs["echo1"] = subprocess.Popen(["../../echo_server", "9001"])
+
+    time.sleep(1)
+
+    for _ in range(4):
+        clients.append(Client())
+
+    time.sleep(1)
+    
+    metrics = get_metrics()
+    expected = [
+        BackendMetric(host=host, port=9002, healthy=True, connection_count=3),
+        BackendMetric(host=host, port=9001, healthy=True, connection_count=3),
+    ]
+    assert Counter(metrics['backends']) == Counter(expected)
+
 
 def test_round_robin(basic_system):
     procs = basic_system(2)
@@ -158,16 +200,13 @@ def test_round_robin(basic_system):
     time.sleep(1)
 
     metrics = get_metrics()
-    print(metrics)
-    print("=======")
-
 
     expected = [
         BackendMetric(host=host, port=9001, healthy=True, connection_count=2),
         BackendMetric(host=host, port=9002, healthy=True, connection_count=4),
     ]
     print(expected)
-    # assert Counter(metrics['backends']) == Counter(expected)
+    assert Counter(metrics['backends']) == Counter(expected)
     
 def test_teardown_backend(basic_system):
     procs = basic_system(1)
