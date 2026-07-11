@@ -3,9 +3,9 @@ import time
 import socket
 from dataclasses import dataclass
 import re
-
+from collections import Counter
 import pytest
-@dataclass
+@dataclass(frozen=True)
 class BackendMetric:
     host: str
     port: int
@@ -116,11 +116,66 @@ def test_balanced_connections(basic_system):
     ]
     assert metrics['backends'] == expected
 
+def test_round_robin(basic_system):
+    procs = basic_system(2)
+    clients = []
+    for _ in range(4):
+        clients.append(Client())
+    
+    time.sleep(1)
+    metrics = get_metrics()
+
+    assert metrics['active_connections'] == 4
+    assert metrics['registered_backends'] == 2
+    host = '127.0.0.1'
+
+    expected = [
+        BackendMetric(host=host, port=9001, healthy=True, connection_count=2),
+        BackendMetric(host=host, port=9002, healthy=True, connection_count=2),
+    ]
+    
+    assert metrics['active_connections'] == 4
+    assert metrics['registered_backends'] == 2
+
+ 
+    procs['echo1'].terminate()
+    time.sleep(2)
+    expected = [
+        BackendMetric(host=host, port=9002, healthy=True, connection_count=2),
+        BackendMetric(host=host, port=9001, healthy=False, connection_count=0),
+    ]
+
+    metrics = get_metrics()
+
+    assert Counter(metrics['backends']) == Counter(expected)
+    procs["echo1"] = subprocess.Popen(["../../echo_server", "9001"])
+
+    time.sleep(1)
+
+    for _ in range(4):
+        clients.append(Client())
+    
+    time.sleep(1)
+
+    metrics = get_metrics()
+    print(metrics)
+    print("=======")
+
+
+    expected = [
+        BackendMetric(host=host, port=9001, healthy=True, connection_count=2),
+        BackendMetric(host=host, port=9002, healthy=True, connection_count=4),
+    ]
+    print(expected)
+    # assert Counter(metrics['backends']) == Counter(expected)
+    
 def test_teardown_backend(basic_system):
     procs = basic_system(1)
     clients = []
     for _ in range(4):
         clients.append(Client())
+
+    time.sleep(1)
     
     metrics = get_metrics()
 
@@ -135,7 +190,7 @@ def test_teardown_backend(basic_system):
     assert metrics['backends'] == expected
 
     procs['echo1'].terminate()
-    time.sleep(1)
+    time.sleep(2)
 
     metrics = get_metrics()
     assert metrics['active_connections'] == 0

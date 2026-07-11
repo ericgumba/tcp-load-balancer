@@ -6,22 +6,13 @@ registered_backends
 healthy_backends
 total_connections
 backend_failures
-bytes_proxied
-2.Config file
-Support both:
-./lb backends.conf
+bytes_proxied 
 3.Non-blocking sockets
 Make client/backend sockets non-blocking so one slow connection cannot freeze the whole load balancer.
 4. Fix partial reads/writes
 5. Right now you may assume recv()/send() transfers everything. Real TCP does not guarantee that. Add per-session buffers:
 client_to_backend_buf
-backend_to_client_buf
-7. Load-balancing policy
-Add something beyond round-robin:
-round_robin
-least_connections
-random
-healthy_only
+backend_to_client_buf 
 8. Tests
 - round-robin test
 - unhealthy backend skipped
